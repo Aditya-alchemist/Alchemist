@@ -1,0 +1,40 @@
+{
+  "name": "alchemist",
+  "version": "0.1.0",
+  "description": "A voice-first personal AI assistant for Windows",
+  "type": "module",
+  "bin": {
+    "alchemist": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/cli.ts",
+    "start": "node dist/cli.js",
+    "prepack": "npm run build"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "keywords": [
+    "alchemist",
+    "ai-assistant",
+    "voice-assistant",
+    "openrouter",
+    "windows"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@openrouter/sdk": "^1.4.25",
+    "dotenv": "^18.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2"
+  }
+}
