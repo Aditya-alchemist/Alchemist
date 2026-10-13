@@ -2,8 +2,11 @@
 
 import * as readline from "node:readline";
 import { AlchemistAssistant } from "./assistant.js";
+import { config } from "./config.js";
 import { speak, stopSpeaking } from "./voice/output.js";
 import { listenOnce, watchHotkey, type Listening } from "./voice/input.js";
+import { startRecording, type Recorder } from "./voice/record.js";
+import { transcribe } from "./voice/transcribe.js";
 import { allowedRoots, fullAccess } from "./tools/safety.js";
 
 async function main(): Promise<void> {
@@ -30,6 +33,11 @@ Usage:
       console.log("Configuration looks good.");
       console.log(
         fullAccess ? "Access mode: FULL" : "Access mode: approved folders",
+      );
+      console.log(
+        config.groqKey
+          ? "Speech recognition: Groq Whisper"
+          : "Speech recognition: Windows built-in (set GROQ_API_KEY for better accuracy)",
       );
       for (const root of allowedRoots) console.log(`  ${root}`);
     } catch (error) {
@@ -59,9 +67,12 @@ Usage:
     prompt: "You > ",
   });
 
+  const useWhisper = Boolean(config.groqKey);
+
   let pendingConfirm: ((ok: boolean) => void) | undefined;
   let busy = false;
-  let listening: Listening | undefined;
+  let recorder: Recorder | undefined;
+  let fallback: Listening | undefined;
 
   const confirm = (question: string): Promise<boolean> =>
     new Promise((resolve) => {
@@ -122,10 +133,50 @@ Usage:
     }
   }
 
-  function toggleListening(): void {
-    if (listening) {
-      listening.cancel();
-      listening = undefined;
+  async function toggleWhisper(): Promise<void> {
+    if (recorder) {
+      const current = recorder;
+      recorder = undefined;
+      console.log("  Transcribing...");
+
+      try {
+        const file = await current.stop();
+        if (!file) {
+          console.log("  (no speech captured)");
+          rl.prompt();
+          return;
+        }
+
+        const text = await transcribe(file);
+        if (!text) {
+          console.log("  (didn't catch anything)");
+          rl.prompt();
+          return;
+        }
+
+        console.log(`You (voice) > ${text}`);
+        await handleInput(text);
+      } catch (error) {
+        console.error(
+          "\nVoice error:",
+          error instanceof Error ? error.message : error,
+        );
+        rl.prompt();
+      }
+      return;
+    }
+
+    stopSpeaking(); // keep the microphone from hearing Alchemist itself
+    recorder = startRecording();
+    console.log(
+      "\n  Recording... speak, then press Ctrl+Alt+A again to send.",
+    );
+  }
+
+  function toggleFallback(): void {
+    if (fallback) {
+      fallback.cancel();
+      fallback = undefined;
       console.log("\n  (stopped listening)");
       rl.prompt();
       return;
@@ -135,11 +186,11 @@ Usage:
     console.log("\n  Listening... speak now (Ctrl+Alt+A again to cancel)");
 
     const current = listenOnce();
-    listening = current;
+    fallback = current;
 
     void current.result.then((text) => {
-      if (listening !== current) return; // cancelled
-      listening = undefined;
+      if (fallback !== current) return;
+      fallback = undefined;
 
       if (text) {
         console.log(`You (voice) > ${text}`);
@@ -151,17 +202,27 @@ Usage:
     });
   }
 
-  const hotkey = watchHotkey(toggleListening, () =>
-    console.log(
-      "  Could not register Ctrl+Alt+A. Another app may be using it; type instead.",
-    ),
+  const hotkey = watchHotkey(
+    () => {
+      if (useWhisper) void toggleWhisper();
+      else toggleFallback();
+    },
+    () =>
+      console.log(
+        "  Could not register Ctrl+Alt+A. Another app may be using it; type instead.",
+      ),
   );
 
   console.log(
     "Alchemist online. Type, or press Ctrl+Alt+A to speak. 'exit' to quit.",
   );
   console.log(
-    fullAccess ? "Access mode: FULL\n" : "Access mode: approved folders\n",
+    fullAccess ? "Access mode: FULL" : "Access mode: approved folders",
+  );
+  console.log(
+    useWhisper
+      ? "Speech recognition: Groq Whisper\n"
+      : "Speech recognition: Windows built-in (add GROQ_API_KEY for better accuracy)\n",
   );
   rl.prompt();
 
@@ -170,7 +231,8 @@ Usage:
   });
 
   rl.on("close", () => {
-    listening?.cancel();
+    recorder?.cancel();
+    fallback?.cancel();
     hotkey.kill();
     stopSpeaking();
     console.log("\nAlchemist offline. Goodbye.");
