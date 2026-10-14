@@ -87,13 +87,31 @@ export const toolDefinitions = [
     type: "function",
     function: {
       name: "open_url",
-      description: "Open a website in the default browser.",
+      description:
+        "Open a website. Set browser to open it in a specific browser; otherwise the default browser is used. To search, pass a search URL such as https://www.google.com/search?q=blockchain.",
       parameters: {
         type: "object",
         properties: {
           url: { type: "string", description: "http or https URL" },
+          browser: {
+            type: "string",
+            enum: ["default", "brave", "edge", "chrome", "firefox"],
+          },
         },
         required: ["url"],
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "web_search",
+      description:
+        "Search the web and return the top results (title and url). Use it to find the first, second or Nth site for a query, then open the chosen url with open_url.",
+      parameters: {
+        type: "object",
+        properties: { query: { type: "string" } },
+        required: ["query"],
       },
     },
   },
@@ -136,6 +154,55 @@ function launch(command: string, args: string[]): void {
   });
   child.on("error", () => {});
   child.unref();
+}
+
+const BROWSERS: Record<string, string> = {
+  brave: "brave",
+  edge: "msedge",
+  msedge: "msedge",
+  chrome: "chrome",
+  firefox: "firefox",
+};
+
+async function webSearch(query: string): Promise<string> {
+  const response = await fetch(
+    "https://html.duckduckgo.com/html/?q=" + encodeURIComponent(query),
+    {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36",
+      },
+    },
+  );
+  if (!response.ok) throw new Error(`Search failed (${response.status})`);
+
+  const html = await response.text();
+  const results: string[] = [];
+  const pattern =
+    /<a[^>]*class="result__a"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/g;
+
+  let match: RegExpExecArray | null;
+  while ((match = pattern.exec(html)) && results.length < 5) {
+    let href = match[1]!.replace(/&amp;/g, "&");
+    if (href.startsWith("//")) href = "https:" + href;
+
+    try {
+      const url = new URL(href);
+      const real = url.searchParams.get("uddg");
+      if (real) href = real;
+      else if (url.hostname.endsWith("duckduckgo.com")) continue; // ads
+    } catch {
+      continue;
+    }
+
+    const title = match[2]!
+      .replace(/<[^>]+>/g, "")
+      .replace(/&amp;/g, "&")
+      .trim();
+    results.push(`${results.length + 1}. ${title} - ${href}`);
+  }
+
+  return results.length ? results.join("\n") : "No results found.";
 }
 
 export async function runTool(
@@ -204,12 +271,42 @@ export async function runTool(
       }
 
       case "open_url": {
-        const url = str(args, "url");
-        if (!/^https?:\/\//i.test(url)) {
+        let url: string;
+        try {
+          url = new URL(str(args, "url")).href;
+        } catch {
+          return "Error: that is not a valid URL.";
+        }
+        if (!/^https?:/i.test(url)) {
           return "Error: only http and https links are allowed.";
         }
+
+        const key =
+          typeof args.browser === "string" ? args.browser.toLowerCase() : "";
+        const exe = BROWSERS[key];
+
+        if (exe) {
+          const child = spawn(
+            "cmd.exe",
+            ["/d", "/s", "/c", `"start "" ${exe} "${url}""`],
+            {
+              detached: true,
+              stdio: "ignore",
+              windowsHide: true,
+              windowsVerbatimArguments: true,
+            },
+          );
+          child.on("error", () => {});
+          child.unref();
+          return `Opened ${url} in ${key}.`;
+        }
+
         launch("explorer.exe", [url]);
         return `Opened ${url} in the default browser.`;
+      }
+
+      case "web_search": {
+        return await webSearch(str(args, "query"));
       }
 
       case "run_command": {

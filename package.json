@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "description": "A voice-first personal AI assistant for Windows",
   "type": "module",
+  "main": "dist/main.js",
   "bin": {
     "alchemist": "./dist/cli.js"
   },
@@ -12,9 +13,9 @@
     "LICENSE"
   ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsx src/cli.ts",
-    "start": "node dist/cli.js",
+    "build": "tsc && node scripts/copy-ui.mjs",
+    "dev": "npm run build && electron .",
+    "start": "electron .",
     "prepack": "npm run build"
   },
   "engines": {
@@ -30,11 +31,15 @@
   "license": "MIT",
   "dependencies": {
     "@openrouter/sdk": "^1.4.25",
-    "dotenv": "^18.0.7"
+    "dotenv": "^18.0.7",
+    "electron": "^44.7.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2"
+  },
+  "allowScripts": {
+    "electron@44.7.1": true
   }
 }
