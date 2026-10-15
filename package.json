@@ -16,7 +16,7 @@
     "win32"
   ],
   "scripts": {
-    "build": "tsc && node scripts/copy-ui.mjs",
+    "build": "node scripts/clean.mjs && tsc && node scripts/copy-ui.mjs",
     "dev": "npm run build && electron .",
     "start": "electron .",
     "prepack": "npm run build"
