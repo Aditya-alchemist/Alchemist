@@ -4,8 +4,8 @@ A voice-first personal AI assistant for Windows. Press Ctrl+Alt+A, say what
 you want, and Alchemist opens apps, searches the web, and creates files.
 
 ## Install
-
-    npm install -g alchemist
+    
+    npm install -g @aditya_41205/alchemist
     alchemist setup
     alchemist start
 
