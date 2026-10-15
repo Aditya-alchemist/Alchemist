@@ -1,7 +1,16 @@
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
 import { OpenRouter } from "@openrouter/sdk";
 import { config, validateConfig } from "./config.js";
 import { allowedRoots, fullAccess } from "./tools/safety.js";
 import { runTool, toolDefinitions, type Confirm } from "./tools/index.js";
+
+function knownFolder(name: string): string {
+  const home = os.homedir();
+  const onedrive = path.join(home, "OneDrive", name);
+  return fs.existsSync(onedrive) ? onedrive : path.join(home, name);
+}
 
 function buildSystemPrompt(): string {
   return `
@@ -24,6 +33,11 @@ ${
 Always use absolute paths. Use list_directory to find things rather
 than guessing. When asked to create a file, write the complete
 content with write_file.
+
+The user's Desktop folder is ${knownFolder("Desktop")}.
+The user's Documents folder is ${knownFolder("Documents")}.
+Use create_folder to make folders and write_file to make files.
+Do not use run_command for anything the other tools can do.
 
 Your replies are spoken aloud in a small popup, so keep them to one or two
 short sentences. After completing an action, say "Done." with at most a few

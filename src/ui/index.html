@@ -51,8 +51,8 @@
   .msg.sys { align-self: center; color: #f0a8a8; font-size: 12px; text-align: center; }
   #confirm { margin: 0 16px 8px; padding: 12px; border-radius: 14px; background: #332b17; border: 1px solid #6b5521; }
   #confirm p { margin: 0 0 10px; font-size: 13px; line-height: 1.4; word-break: break-word; }
-  #confirm button { border: 0; border-radius: 8px; padding: 7px 18px; margin-right: 8px; font-size: 13px; cursor: pointer; color: #fff; }
-  #yes { background: #2f9e5b; } #no { background: #8a3a3a; }
+  #confirm button { border: 0; border-radius: 8px; padding: 7px 14px; margin-right: 6px; font-size: 13px; cursor: pointer; color: #fff; }
+  #yes { background: #2f9e5b; } #always { background: #3b6fd9; } #no { background: #8a3a3a; }
   footer { padding: 8px 16px 14px; font-size: 11px; color: #6b7389; text-align: center; }
 </style>
 </head>
@@ -66,7 +66,7 @@
     <div id="log"></div>
     <div id="confirm" hidden>
       <p id="confirmText"></p>
-      <button id="yes">Yes</button><button id="no">No</button>
+      <button id="yes">Yes</button><button id="always">Always allow</button><button id="no">No</button>
     </div>
     <footer>Ctrl+Alt+A to dismiss &middot; say &ldquo;close chat&rdquo;</footer>
   </div>

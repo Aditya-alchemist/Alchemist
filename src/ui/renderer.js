@@ -9,6 +9,7 @@ const CLOSE_RE =
 const QUIT_RE = /^\W*(quit|shut down|exit) alchemist\W*$/i;
 const YES_RE = /^\W*(yes|yeah|yep|sure|go ahead|do it|proceed|confirm|ok|okay)\b/i;
 const NO_RE = /^\W*(no|nope|cancel|stop|don'?t)\b/i;
+const ALWAYS_RE = /^\W*always\b/i;
 
 function setStatus(text, mode) {
   $("status").textContent = text;
@@ -159,30 +160,32 @@ api.onConfirm(async (question) => {
   const my = token;
   let settled = false;
 
-  const settle = (ok) => {
+  const settle = (reply) => {
     if (settled) return;
     settled = true;
     $("confirm").hidden = true;
     if (cancelListen) cancelListen();
     api.stopSpeaking();
-    api.confirmReply(ok);
+    api.confirmReply(reply);
   };
 
   $("confirmText").textContent = question;
   $("confirm").hidden = false;
   $("yes").onclick = () => settle(true);
+  $("always").onclick = () => settle("always");
   $("no").onclick = () => settle(false);
 
   await say(question, my);
 
   for (let i = 0; i < 2 && !settled && my === token; i++) {
-    setStatus("Say yes or no...", "idle");
+    setStatus("Say yes, always, or no...", "idle");
     const audio = await listen();
     if (settled || my !== token) return;
     if (!audio) continue;
 
     try {
       const text = await api.transcribe(audio, "audio/webm");
+      if (ALWAYS_RE.test(text || "")) return settle("always");
       if (YES_RE.test(text || "")) return settle(true);
       if (NO_RE.test(text || "")) return settle(false);
     } catch {

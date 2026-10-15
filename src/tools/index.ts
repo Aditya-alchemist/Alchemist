@@ -120,7 +120,7 @@ export const toolDefinitions = [
     function: {
       name: "run_command",
       description:
-        "Run a Windows terminal command and return its output. The user must approve every command.",
+        "Run a Windows terminal command and return its output. Only use this when no other tool can do the job.",
       parameters: {
         type: "object",
         properties: {
@@ -318,6 +318,9 @@ export async function runTool(
 
         if (
           /\b(format\s+[a-z]:|diskpart|bcdedit|reg\s+delete|cipher\s+\/w)\b/i.test(
+            command,
+          ) ||
+          /(\.env\b|\.ssh|\.aws|appdata[\\/]+roaming[\\/]+alchemist|%appdata%)/i.test(
             command,
           )
         ) {
