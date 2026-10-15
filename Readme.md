@@ -1,3 +1,6 @@
+[![npm version](https://img.shields.io/npm/v/@aditya_41205/alchemist)](https://www.npmjs.com/package/@aditya_41205/alchemist)
+[![npm downloads](https://img.shields.io/npm/dm/@aditya_41205/alchemist)](https://www.npmjs.com/package/@aditya_41205/alchemist)
+
 # Alchemist
 
 A voice-first personal AI assistant for Windows. Press Ctrl+Alt+A, say what
