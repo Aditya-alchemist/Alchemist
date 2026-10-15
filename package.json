@@ -1,7 +1,7 @@
 {
   "name": "alchemist",
   "version": "0.1.0",
-  "description": "A voice-first personal AI assistant for Windows",
+  "description": "A voice-first personal AI assistant for Windows. Press Ctrl+Alt+A and talk.",
   "type": "module",
   "main": "dist/main.js",
   "bin": {
@@ -11,6 +11,9 @@
     "dist",
     "README.md",
     "LICENSE"
+  ],
+  "os": [
+    "win32"
   ],
   "scripts": {
     "build": "tsc && node scripts/copy-ui.mjs",
@@ -26,7 +29,8 @@
     "ai-assistant",
     "voice-assistant",
     "openrouter",
-    "windows"
+    "windows",
+    "electron"
   ],
   "license": "MIT",
   "dependencies": {

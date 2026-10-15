@@ -1,7 +1,9 @@
 import { app, BrowserWindow, globalShortcut, ipcMain, screen } from "electron";
+import * as fs from "node:fs";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import { AlchemistAssistant } from "./assistant.js";
+import { config, configDir, pidFile, saveConfig } from "./config.js";
 import { speak, stopSpeaking } from "./voice/output.js";
 import { transcribe } from "./voice/transcribe.js";
 
@@ -14,6 +16,7 @@ let pendingConfirm: ((ok: boolean) => void) | undefined;
 
 const confirm = (question: string): Promise<boolean> =>
   new Promise((resolve) => {
+    if (config.autoApprove) return resolve(true);
     if (!win || win.isDestroyed()) return resolve(false);
     pendingConfirm?.(false);
     pendingConfirm = resolve;
@@ -105,10 +108,14 @@ ipcMain.on("quit", () => {
   app.quit();
 });
 
-ipcMain.on("confirm-reply", (_event, ok: boolean) => {
+ipcMain.on("confirm-reply", (_event, reply: boolean | "always") => {
+  if (reply === "always") {
+    config.autoApprove = true;
+    saveConfig({ autoApprove: true });
+  }
   const resolve = pendingConfirm;
   pendingConfirm = undefined;
-  resolve?.(Boolean(ok));
+  resolve?.(reply === true || reply === "always");
 });
 
 const gotLock = app.requestSingleInstanceLock();
@@ -121,6 +128,13 @@ if (!gotLock) {
   });
 
   app.whenReady().then(() => {
+    try {
+      fs.mkdirSync(configDir, { recursive: true });
+      fs.writeFileSync(pidFile, String(process.pid));
+    } catch {
+      // Not fatal; only `alchemist stop` depends on this.
+    }
+
     createWindow();
 
     const registered = globalShortcut.register(HOTKEY, () => {
@@ -148,4 +162,5 @@ app.on("before-quit", () => {
 
 app.on("will-quit", () => {
   globalShortcut.unregisterAll();
+  if (gotLock) fs.rmSync(pidFile, { force: true });
 });

@@ -1,19 +1,16 @@
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
+import { config } from "../config.js";
 
-export const fullAccess =
-  (process.env.ALCHEMIST_ACCESS ?? "").toLowerCase() === "full";
+export const fullAccess = config.fullAccess;
 
 function candidateRoots(): string[] {
   if (fullAccess) {
     return "CDEFGH".split("").map((d) => `${d}:\\`);
   }
 
-  const fromEnv = process.env.ALCHEMIST_ROOTS;
-  if (fromEnv) {
-    return fromEnv.split(";").map((s) => s.trim()).filter(Boolean);
-  }
+  if (config.roots.length > 0) return config.roots;
 
   const home = os.homedir();
   return [
